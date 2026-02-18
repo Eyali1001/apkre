@@ -57,12 +57,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-dep.sh <dep>
 
 ### Decompilation
 
-For the decompile step (Phase 2), use the bundled decompile scripts from the submodule:
-
-```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-deps.sh
-bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/scripts/decompile.sh <file>
-```
+For Phase 2, read and follow the full android-reverse-engineering skill at `${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/SKILL.md`. It contains guidance on engine selection, structure analysis, call flow tracing, and obfuscated code handling that goes beyond just running the decompile script.
 
 ### Output
 

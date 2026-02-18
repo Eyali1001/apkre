@@ -53,29 +53,25 @@ If starting from an existing file, skip to Phase 2.
 
 ### Phase 2: Decompile & Initial Exploration
 
-Use the bundled decompile scripts from the android-reverse-engineering submodule.
+This phase delegates to the bundled [android-reverse-engineering-skill](https://github.com/SimoneAvogadro/android-reverse-engineering-skill). **Read and follow its full workflow** — it contains valuable guidance on engine selection, structure analysis, call flow tracing, and handling obfuscated code.
 
-1. Check and install dependencies:
-   ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-deps.sh
-   ```
-   If anything is missing, install it:
-   ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-dep.sh <dep>
-   ```
+The skill's documentation is at:
+- **Full skill**: `${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/SKILL.md`
+- **References**: `${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/references/`
 
-2. Decompile:
-   ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/scripts/decompile.sh <file>
-   ```
+Follow Phases 1–5 of their skill (deps → decompile → analyze structure → trace call flows → extract APIs), using their scripts:
 
-   The output goes to `<package>-decompiled/` in the current working directory.
+```bash
+# Scripts are at this base path:
+SCRIPTS="${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/scripts"
 
-3. After decompilation:
-   - Read `AndroidManifest.xml` from the resources directory
-   - List the top-level package structure under `sources/`
-   - Identify the main Activity, Application class, and architecture pattern (MVP/MVVM/Clean)
-   - Report SDK/library inventory
+bash "$SCRIPTS/check-deps.sh"           # Check deps (jadx, java)
+bash "$SCRIPTS/install-dep.sh" <dep>    # Install if missing
+bash "$SCRIPTS/decompile.sh" <file>     # Decompile
+bash "$SCRIPTS/find-api-calls.sh" <output>/sources/  # Find APIs
+```
+
+The decompiled output goes to `<package>-decompiled/` in the current working directory.
 
 > **Note for large apps:** Decompilation of apps with 60K+ classes can take 10+ minutes. Start Phase 3 analysis in parallel once jadx reaches ~85%.
 
