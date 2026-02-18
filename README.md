@@ -49,6 +49,8 @@ That's it. Claude finds the app on Google Play, downloads the APK, decompiles it
 
 > Rust (`cargo`) is required for apkeep: [rustup.rs](https://rustup.rs)
 
+**Or just skip this table** — paste this repo's URL into Claude Code and let it figure out what's missing. It'll install everything for you.
+
 ### Install the plugin
 
 **Marketplace:**
