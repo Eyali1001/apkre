@@ -38,20 +38,7 @@ That's it. Claude finds the app on Google Play, downloads the APK, decompiles it
 
 ## Quick start
 
-### Prerequisites
-
-| Tool | macOS | Linux (Debian/Ubuntu) | Windows |
-|------|-------|----------------------|---------|
-| [apkeep](https://github.com/nicolo-ribaudo/apkeep) | `cargo install apkeep` | `cargo install apkeep` | `cargo install apkeep` |
-| [jadx](https://github.com/skylot/jadx) | `brew install jadx` | [GitHub release](https://github.com/skylot/jadx/releases) | [GitHub release](https://github.com/skylot/jadx/releases) |
-| Java 17+ | `brew install openjdk@17` | `sudo apt install openjdk-17-jdk` | [adoptium.net](https://adoptium.net) |
-| [uv](https://github.com/astral-sh/uv) | `brew install uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `powershell -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
-
-> Rust (`cargo`) is required for apkeep: [rustup.rs](https://rustup.rs)
-
-**Or just skip this table** — paste this repo's URL into Claude Code and let it figure out what's missing. It'll install everything for you.
-
-### Install the plugin
+### Install
 
 **Marketplace:**
 ```

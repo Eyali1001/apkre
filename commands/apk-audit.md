@@ -41,13 +41,27 @@ When the input is a natural-language description (not a file path or package nam
 
 Follow Phases 1–6 from the skill playbook. Use parallel agents where the playbook recommends it (Phase 3 especially).
 
+### Dependencies
+
+Before anything else, check and auto-install dependencies:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-deps.sh
+```
+
+If anything is missing, install it:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-dep.sh <dep>
+```
+
 ### Decompilation
 
 For the decompile step (Phase 2), use the bundled decompile scripts from the submodule:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/check-deps.sh
-bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/decompile.sh <file>
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-deps.sh
+bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/scripts/decompile.sh <file>
 ```
 
 ### Output

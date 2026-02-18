@@ -8,20 +8,14 @@ A structured workflow for security-auditing Android applications. Downloads the 
 
 ## Prerequisites
 
-| Tool | Purpose | Install |
-|------|---------|---------|
-| [apkeep](https://github.com/nicolo-ribaudo/apkeep) | Download APKs from Google Play | `cargo install apkeep` |
-| [jadx](https://github.com/skylot/jadx) | DEX → Java decompiler | `brew install jadx` |
-| Java 17+ | Required by jadx | `brew install openjdk@17` |
-| [uv](https://github.com/astral-sh/uv) | Python package runner for PoC scripts | `brew install uv` |
-
-Optional: [vineflower](https://github.com/Vineflower/vineflower), [dex2jar](https://github.com/pxb1988/dex2jar) (alternative decompilers).
-
-Check dependencies:
+Dependencies are checked and auto-installed at the start of each audit. Run manually if needed:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/check-deps.sh
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-deps.sh
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-dep.sh <dep>
 ```
+
+Required: apkeep, jadx, Java 17+, uv. Optional: vineflower, dex2jar.
 
 ## Workflow
 
@@ -63,16 +57,16 @@ Use the bundled decompile scripts from the android-reverse-engineering submodule
 
 1. Check and install dependencies:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/check-deps.sh
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-deps.sh
    ```
    If anything is missing, install it:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/install-dep.sh <dep>
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/install-dep.sh <dep>
    ```
 
 2. Decompile:
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/decompile.sh <file>
+   bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/scripts/decompile.sh <file>
    ```
 
    The output goes to `<package>-decompiled/` in the current working directory.
@@ -104,7 +98,7 @@ Search both native code and JS bundles (for React Native / Capacitor / hybrid ap
 
 Use the bundled API search script:
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reverse-engineering/scripts/find-api-calls.sh <output>/sources/
+bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/plugins/android-reverse-engineering/skills/android-reverse-engineering/scripts/find-api-calls.sh <output>/sources/
 ```
 
 For hybrid apps, also search JS bundles:
