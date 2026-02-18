@@ -116,6 +116,21 @@ Search patterns:
 clientSecret, Bearer, Authorization, api[_-]?key, CertificatePinner, TrustManager
 ```
 
+#### Native Libraries (.so) — Crypto Red Flags
+
+Check for native libraries under `lib/` in the decompiled output. List all `.so` files and look for JNI methods loaded via `System.loadLibrary()` or `System.load()` in the Java/Kotlin source.
+
+Run `strings` on each `.so` and search for encryption-related symbols:
+```bash
+strings <output>/resources/lib/*/*.so | grep -iE 'AES|encrypt|decrypt|cipher|HMAC|SHA256|RSA|sign|verify|secret|key|iv|nonce|pbkdf'
+```
+
+**If a native library contains encryption-related functions, this is a red flag.** It often means the app is hiding crypto logic (key derivation, token signing, request encryption) inside native code to make reverse engineering harder. This is worth investigating — the crypto implementation may have weaknesses, hardcoded keys, or custom (broken) schemes.
+
+**Tell the user**: "The app has native libraries with encryption-related symbols. This likely hides key crypto logic from Java-level analysis. I recommend opening these `.so` files in IDA Pro or Ghidra for manual inspection — look for hardcoded keys, weak algorithms, or custom crypto schemes that bypass standard Android APIs."
+
+Include the list of suspicious `.so` files and their crypto-related symbols in the report.
+
 #### Agent 4: Third-Party SDKs
 - Firebase, analytics, crash reporting SDKs
 - Payment processors
