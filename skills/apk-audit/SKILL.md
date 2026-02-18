@@ -25,6 +25,18 @@ bash ${CLAUDE_PLUGIN_ROOT}/android-reverse-engineering-skill/skills/android-reve
 
 ## Workflow
 
+### Phase 0: Resolve App Description
+
+If the user provides a natural-language description instead of a package name or file path (e.g. "the israeli parking app", "Domino's Pizza Israel"):
+
+1. **Search the web** for the app on Google Play:
+   ```
+   WebSearch: "<description>" site:play.google.com
+   ```
+2. Extract the package name from the Google Play URL (`id=` parameter).
+3. If multiple candidates match, present them to the user and ask which one to audit.
+4. Once confirmed, continue to Phase 1 with the resolved package name.
+
 ### Phase 1: Setup & Download
 
 If starting from a package name (not an existing file):
