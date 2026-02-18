@@ -162,18 +162,47 @@ After mapping all endpoints and the auth system, identify endpoints callable **w
 
 ### Phase 5: Live Testing (PoC)
 
-For findings from static analysis, write Python PoC scripts to confirm:
+For findings from static analysis, write Python PoC scripts to confirm. Use the bundled templates as starting points:
 
 ```bash
+# Run any PoC script with uv (no virtualenv needed)
 uv run --with httpx python <appname>/poc_script.py
 ```
 
-Common PoC patterns:
-- Anonymous login → test authenticated-only endpoints
-- GraphQL introspection → map full schema → test authorization per resolver
-- Compare REST vs. GraphQL auth enforcement (dual-access patterns)
-- Test for IDOR, missing auth, data leakage
-- Test rate limiting on sensitive endpoints
+#### Bundled PoC Templates
+
+Adapt these from `${CLAUDE_PLUGIN_ROOT}/scripts/`:
+
+- **`graphql-introspect.py`** — Dump full GraphQL schema (queries, mutations, types, arguments). Use on every GraphQL endpoint found. Run with and without auth tokens.
+  ```bash
+  uv run --with httpx python ${CLAUDE_PLUGIN_ROOT}/scripts/graphql-introspect.py <graphql-url> [--token <token>]
+  ```
+
+- **`test-unauth.py`** — Test a list of endpoints with and without auth. Classifies each as BLOCKED / ERROR / DATA_RETURNED.
+  ```bash
+  uv run --with httpx python ${CLAUDE_PLUGIN_ROOT}/scripts/test-unauth.py --base-url <url> --endpoints endpoints.json [--token <token>]
+  ```
+
+- **`extract-strings-hermes.py`** — Extract all string literals from Hermes bytecode bundles. Finds URLs, API paths, auth headers, config keys.
+  ```bash
+  uv run python ${CLAUDE_PLUGIN_ROOT}/scripts/extract-strings-hermes.py <bundle.hbc> [--filter-urls]
+  ```
+
+- **`check-ssl-pinning.sh`** — Scan decompiled source for SSL pinning implementations.
+  ```bash
+  bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-ssl-pinning.sh <decompiled-dir>
+  ```
+
+#### Common PoC patterns
+
+- **Anonymous login** → get anon token → test authenticated-only endpoints with it
+- **GraphQL introspection** → map full schema → test authorization per resolver
+- **REST/GraphQL duality** → same operation on both paths, compare auth enforcement
+- **Phone/ID enumeration** → differential error responses reveal registered users
+- **IDOR** → swap user IDs in authenticated requests
+- **Token forgery** → if crypto keys are hardcoded, attempt to forge tokens
+
+> **Do NOT test OTP/SMS endpoints live.** Sending OTP requests triggers real SMS messages to real phone numbers — this is disruptive and potentially costly. Document OTP weaknesses (missing rate limits, brute-force feasibility, enumeration via error codes) from **static analysis only**. Note the finding in the report without live confirmation.
 
 Save all PoC scripts in the `<appname>/` directory.
 
@@ -192,6 +221,85 @@ Fill in every section with findings from Phases 1–5. For the Security Observat
 | MEDIUM | Information disclosure, missing security controls |
 | LOW | Minor misconfigurations, debug artifacts |
 | INFO | Best-practice recommendations, no direct risk |
+
+## Field-Tested Patterns
+
+Lessons from real-world audits. Check for all of these — they recur across apps.
+
+### REST/GraphQL Duality
+
+When an app exposes both REST and GraphQL endpoints for the same operations, **test both paths**. A REST proxy to a GraphQL backend often has different auth enforcement than the GraphQL server itself. One path may accept anonymous tokens while the other rejects them. Error responses from the proxy can also leak stack traces, internal file paths, and library versions.
+
+### Global Auth Interceptor ≠ Per-Endpoint Security
+
+Many apps inject `Authorization: Bearer` via a single global OkHttp interceptor. This does NOT mean every endpoint is protected — the server may not actually enforce auth on all routes. If you find 50+ endpoints behind a single interceptor with no per-method `@Header` annotations, the real question is: does the **server** enforce auth, or does it trust the client to send it? Test endpoints individually.
+
+Also watch for **multiple OkHttpClient instances** with different interceptor chains — not all requests may go through the auth interceptor (image uploads, analytics, external APIs).
+
+### OTP & SMS Abuse Surface (Static Analysis Only)
+
+Almost every app with SMS-based auth is vulnerable to at least one of:
+
+1. **SMS bombing** — no server-side rate limit on "send OTP" endpoints. Can flood a phone number with SMS at the app's expense.
+2. **OTP brute-force** — 4-6 digit codes with no server-side retry limit. Client-side "3 attempts" means nothing. 6-digit OTP = 1M possibilities, testable in minutes without rate limiting.
+3. **Phone enumeration** — "send OTP" endpoint returns different error codes/messages for registered vs unregistered numbers. Reveals the app's entire user base.
+
+Assess from decompiled code: Is rate limiting client-side or server-side? Does the error handling differ by registration status? Is there a CAPTCHA (real or hardcoded placeholder)?
+
+> **Do NOT call OTP endpoints live** — this sends real SMS to real people. Document findings from static analysis only.
+
+### Token Storage Red Flags
+
+Check how tokens are stored — this determines ease of token theft on rooted/compromised devices:
+
+| Storage | Security | Found in |
+|---------|----------|----------|
+| `SharedPreferences` (plaintext) | None — readable on rooted device | Most native apps |
+| `AsyncStorage` (plaintext SQLite) | None | React Native apps |
+| Capacitor `Preferences` | None — maps to SharedPreferences | Capacitor/hybrid apps |
+| `EncryptedSharedPreferences` | Good — uses Android Keystore | Rare |
+| `MMKV` (encrypted mode) | Good — if key is secure | Some RN apps |
+
+Search for: `SharedPreferences`, `AsyncStorage`, `MMKV`, `EncryptedSharedPreferences`, `getSharedPreferences`, `PreferenceManager`.
+
+### Hardcoded Secrets — Where to Look
+
+Secrets hide in predictable places:
+
+1. **`BuildConfig`** and **`strings.xml`** — API keys, client secrets
+2. **OkHttp interceptors** — hardcoded auth headers, static passwords
+3. **Native `.so` libraries** — AES keys, salts (extractable via `strings`)
+4. **Bootstrap/config endpoints** — static credentials to fetch dynamic config (the static creds themselves are hardcoded)
+5. **JavaScript bundles** — environment configs, API keys in RN/Capacitor apps
+6. **`@raw/` resources** — certificates, config files
+
+A common pattern: the app calls a "getConfig" endpoint with a hardcoded username/password to fetch dynamic secrets. The hardcoded creds are the vulnerability.
+
+### GraphQL Introspection as Recon
+
+When GraphQL introspection is enabled in production, it reveals the **entire API surface** — including admin operations the app's UI never calls. Look for mutations named `create`, `delete`, `publish`, `admin`, `accounting`, `internal`. These often lack resolver-level auth checks because developers assumed they'd never be called by clients.
+
+Run the bundled `graphql-introspect.py` on every GraphQL endpoint, with AND without auth tokens.
+
+### Hybrid/Capacitor Apps
+
+Capacitor apps look like native Android but all logic is in JavaScript:
+- Minimal Java layer (just `BridgeActivity`)
+- All API calls, auth logic, and business logic in JS bundles under `assets/`
+- Tokens stored in Capacitor `Preferences` → plaintext SharedPreferences
+- `postMessage("*")` for cross-frame token passing → broadcasts to any origin
+
+Search the JS bundle, not the Java source.
+
+### SSL Pinning — Usually Missing
+
+In practice, most apps do NOT implement certificate pinning. Run the bundled `check-ssl-pinning.sh` to verify. If absent, flag it — the app is vulnerable to MITM with a user-installed CA certificate (corporate MDM, rooted device, proxy setup).
+
+Also check for the opposite: custom `TrustManager` implementations that **disable** all certificate validation (accept self-signed certs). Search for `TrustManager`, `X509TrustManager`, `checkServerTrusted`. An empty `checkServerTrusted()` method is a critical finding.
+
+### cleartext Traffic
+
+Search `AndroidManifest.xml` for `android:usesCleartextTraffic="true"` and `network_security_config.xml` for `cleartextTrafficPermitted="true"`. These allow HTTP (not HTTPS) traffic, enabling passive eavesdropping.
 
 ## Obfuscated Code Reference
 
